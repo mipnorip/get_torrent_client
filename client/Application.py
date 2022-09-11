@@ -1,9 +1,11 @@
 import configparser
+import re
 from time import sleep
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import undetected_chromedriver
+from bs4 import BeautifulSoup
 
 class Application:
     def __init__(self) -> None: 
@@ -17,16 +19,30 @@ class Application:
         self.driver.start_session()
         self.login()
 
+
     def get_list(self, name) -> dict:
-        result = {}
-        return result
+        data = dict()
+        
+        self.driver.get('https://nnmclub.to/forum/tracker.php')
+        self.driver.find_element(By.ID, 'nm').send_keys(name)
+        self.driver.find_element(By.XPATH, "//input[@value='Поиск']").click()
+
+        site = BeautifulSoup(self.driver.page_source, 'html.parser')
+        results = site.find_all('a', class_='genmed topictitle', href=True)
+        
+        for line in results:
+            data[line.string] = line.attrs["href"]
+
+        return data
 
 
-    def get_items(self, path) -> None:
-        pass
+    def get_item(self, url) -> None:
+        self.driver.get('https://nnmclub.to/forum/' + url)
+        self.driver.find_element(By.LINK_TEXT, 'Скачать').click()
+        sleep(5)
 
 
-    def login(self):
+    def login(self) -> None:
         login_url = 'https://nnmclub.to/forum/login.php'
         self.driver.get(login_url)
         
@@ -39,6 +55,3 @@ class Application:
         
         while self.driver.page_source.count('Введите ваше имя и пароль для входа в систему'):
             sleep(1)
-        
-        self.driver.close()
-        self.driver.quit()
